@@ -530,4 +530,118 @@ R-UTARA hilang dari neighbor R-PUSAT, route ke `10.48.160.0` berpindah via `10.4
 Seluruh static route berhasil diganti OSPF area 0. Default route hanya dikonfigurasi di R-PUSAT dan tersebar otomatis. Interface LAN pengguna tidak mengirim pesan OSPF, dan link L7 menjadi jalur cadangan yang aktif otomatis saat link backbone putus.
 
 
-### Soal 8 — Layanan Smart City _(belum ada di file .pkt)_
+### Soal 8 — Layanan Smart City
+
+Menyediakan layanan aplikasi smart city dengan domain internal `k6.smartcity.lab`:
+- **DNS** di LAN Server dan Storage DC, dengan nama `www`, `ftp`, dan `mail` yang dapat diakses dari seluruh wilayah.
+- **Web** di LAN Server Balai Kota berupa portal Smart City Surabaya berisi nama kelompok, dapat dibuka dari seluruh wilayah dengan nama domain.
+- **FTP** di LAN Server dan Storage DC untuk menyimpan rekaman CCTV dengan akun login, dan perangkat di LAN CCTV Kota dapat mengunggah ke sana.
+- **Email** antar pegawai Balai Kota dan Kantor Pelabuhan.
+
+### Pengalamatan Server
+
+| Server | LAN | IP | Mask | Gateway | DNS | Layanan |
+|---|---|---|---|---|---|---|
+| Server dan Storage DC | `10.48.239.0/24` | `10.48.239.10` | `255.255.255.0` | `10.48.239.1` | `10.48.239.10` | DNS, FTP, Email |
+| Server Balai Kota | `10.48.241.0/27` | `10.48.241.2` | `255.255.255.224` | `10.48.241.1` | `10.48.239.10` | HTTP |
+
+### Konfigurasi
+
+**1. DNS (Server DC, Services → DNS)**
+
+| Name | Type | Address |
+|---|---|---|
+| `www.k6.smartcity.lab` | A | `10.48.241.2` |
+| `ftp.k6.smartcity.lab` | A | `10.48.239.10` |
+| `mail.k6.smartcity.lab` | A | `10.48.239.10` |
+
+DNS Server `10.48.239.10` dibagikan ke klien lewat pool DHCP, contoh di router:
+```
+ip dhcp pool PEGAWAI-BALAIKOTA
+ dns-server 10.48.239.10
+```
+Pool yang sama diubah untuk LAN Puskesmas Barat, Kantor Pelabuhan, dan LAN CCTV (pool di Server DC).
+
+**2. Web (Server Balai Kota, Services → HTTP)**
+
+HTTP diaktifkan dan `index.html` diganti:
+```html
+<html>
+<head><title>Smart City Surabaya</title></head>
+<body style="text-align:center;font-family:Arial">
+  <h1>Portal Smart City Surabaya</h1>
+  <h3>Kelompok: [NAMA KELOMPOK]</h3>
+  <p>Anggota: [NAMA 1], [NAMA 2], [NAMA 3]</p>
+</body>
+</html>
+```
+
+**3. FTP (Server DC, Services → FTP)**
+
+| Username | Password | Permission |
+|---|---|---|
+| `cctv` | `cctv123` | Write, Read, Delete, Rename, List |
+
+**4. Email (Server DC, Services → EMAIL)**
+
+SMTP dan POP3 diaktifkan, Domain Name `k6.smartcity.lab`.
+
+| User | Password | Alamat email | Dipakai di |
+|---|---|---|---|
+| `pegawai` | `pegawai123` | `pegawai@k6.smartcity.lab` | PC Pegawai Balai Kota |
+| `pelabuhan` | `pelabuhan123` | `pelabuhan@k6.smartcity.lab` | PC Kantor Pelabuhan |
+
+Incoming dan Outgoing Mail Server di kedua PC: `mail.k6.smartcity.lab`.
+
+### Pengujian
+
+**1. Record DNS**
+
+![Services DNS Server DC](screenshot/8-dns-records.jpeg)
+
+Tiga record A (`www`, `ftp`, `mail`) terdaftar di Server DC.
+
+**2. Resolusi nama dari beberapa wilayah**
+
+![nslookup PC Pegawai](screenshot/8-nslookup-pegawai.jpeg)
+![nslookup PC Puskesmas Barat](screenshot/8-nslookup-barat.jpeg)
+![nslookup PC CCTV Kota](screenshot/8-nslookup-cctv.jpeg)
+![nslookup PC Kantor Pelabuhan](screenshot/8-nslookup-pelabuhan.jpeg)
+
+`nslookup www.k6.smartcity.lab` dijawab oleh `10.48.239.10` dengan hasil `10.48.241.2`, dari Balai Kota dan dari wilayah lain.
+
+**3. Web dibuka dengan nama domain**
+
+![Browser Puskesmas Barat](screenshot/8-web-barat.jpeg)
+![Browser CCTV Kota](screenshot/8-web-cctv.jpeg)
+![Browser Kantor Pelabuhan](screenshot/8-web-pelabuhant.jpeg)
+
+`http://www.k6.smartcity.lab` dibuka dari PC Puskesmas Barat, CCTV Kota, dan Kantor Pelabuhan, menampilkan portal dengan nama kelompok. Ini membuktikan web dapat diakses dari wilayah lain dengan nama domain.
+
+**4. FTP: akun dan upload CCTV**
+
+![Services FTP](screenshot/8-config-ftp.jpeg)
+![Membuat File](screenshot/8-membuat-file.jpeg)
+![Transfer Put File](screenshot/8-transfer-file.jpeg)
+![Mengecek File via CLI](screenshot/8-mengecek-file.jpeg)
+![Mengecek File via Services](screenshot/8-mengecek-file1.jpeg)
+
+Akun `cctv` dibuat di server. Dari PC LAN CCTV, login ke `ftp.k6.smartcity.lab` berhasil, `put rekaman1.txt` sukses, dan `dir` menampilkan file tersimpan di server.
+
+**5. Email dua arah**
+
+![Service email Pegawai](screenshot/8-svc-emailPg.jpeg)
+![Service email Pelabuhan](screenshot/8-svc-emailPl.jpeg)
+![Konfigurasi email Pegawai](screenshot/8-config-emailPg.jpeg)
+![Konfigurasi email Pelabuhan](screenshot/8-config-emailPl.jpeg)
+![Email terkirim](screenshot/8-send-email.jpeg)
+![Email terkirim](screenshot/8-send-email1.jpeg)
+![Email diterima](screenshot/8-receive-email.jpeg)
+
+Email dari `pegawai@k6.smartcity.lab` diterima di PC Kantor Pelabuhan, dan balasan dari `pelabuhan@k6.smartcity.lab` diterima di PC Pegawai.
+
+### Catatan
+Layanan ini bergantung pada routing OSPF: seluruh wilayah dapat menjangkau server karena rute ke LAN server disebarkan otomatis. Karena itu konfigurasi OSPF dan layanan Smart City dikerjakan pada satu topologi yang sama.
+
+### Kesimpulan
+DNS, web, FTP, dan email berjalan dengan domain `k6.smartcity.lab`. Nama `www`, `ftp`, dan `mail` dapat di-resolve dari seluruh wilayah, portal web dapat dibuka dengan nama domain, LAN CCTV dapat mengunggah rekaman lewat FTP berakun, dan email antar pegawai Balai Kota dan Kantor Pelabuhan berfungsi dua arah.
