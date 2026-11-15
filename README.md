@@ -498,13 +498,13 @@ R-PUSAT memiliki 5 neighbor FULL, R-UTARA memiliki 3 neighbor FULL (termasuk R-D
 
 **4. Tidak ada pesan OSPF ke LAN pengguna**
 
-![show ip protocols R-BARAT](screenshot/7-protocols-barat.jpeg)
+![show ip protocols R-BARAT](screenshot/7-protocols-rbarat.jpeg)
 
 Interface LAN (Gi3/0 dan Gi4/0) tercantum di **Passive Interface(s)**, sedangkan Gi2/0 (link ke R-PUSAT) tidak.
 
 **5. Default route otomatis dari OSPF**
 
-![show ip route R-BARAT](screenshot/7-iproute-baratjpeg)
+![show ip route R-BARAT](screenshot/7-iproute-barat.jpeg)
 ![tracert 8.8.8.8 dari Puskesmas Barat](screenshot/7-tracert-default.jpeg)
 
 R-BARAT memiliki `O*E2 0.0.0.0/0` via `10.48.241.49` tanpa static route. `tracert 8.8.8.8` berhasil lewat R-BARAT → R-PUSAT → R-ISP.
@@ -520,7 +520,7 @@ Jalur: R-PUSAT → R-UTARA → R-PELABUHAN (3 hop).
 Setelah L2 diputus (`shutdown` Gi2/0 di R-UTARA):
 
 ![L2 diputus](screenshot/7-tes-terputus.jpeg)
-![tracert setelah putus](screenshot/failover-sesudah.jpeg)
+![tracert setelah putus](screenshot/7-failover-sesudah.jpeg)
 
 ![bukti ping](screenshot/7-failover-ping.jpeg)
 
