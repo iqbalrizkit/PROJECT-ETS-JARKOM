@@ -323,8 +323,8 @@ ip route 0.0.0.0 0.0.0.0 203.0.113.25
 [Tabel subnetting (Google Sheets)](https://docs.google.com/spreadsheets/d/1wluLNMTssKU8n0GUz-IAtyvZYIcZxmRQ2G6aUJnnOV4/edit?usp=sharing)
 
 ### Soal 3 — Static routing
-![subnetting](screenshot/2-uji-router.png)
-![subnetting](screenshot/2-uji-perangkat.png)
+![router](screenshot/3-uji-router.png)
+![perangkat](screenshot/3-uji-perangkat.png)
 
 ### Soal 4 — DHCP
 
