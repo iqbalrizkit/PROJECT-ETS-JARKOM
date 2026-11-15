@@ -520,7 +520,7 @@ Jalur: R-PUSAT → R-UTARA → R-PELABUHAN (3 hop).
 Setelah L2 diputus (`shutdown` Gi2/0 di R-UTARA):
 
 ![L2 diputus](screenshot/7-tes-terputus.jpeg)
-![tracert setelah putus](screenshot/7-failover-sesudah.jpeg)
+![tracert setelah putus](screenshot/7-failover-setelah.jpeg)
 
 ![bukti ping](screenshot/7-failover-ping.jpeg)
 
@@ -614,7 +614,7 @@ Tiga record A (`www`, `ftp`, `mail`) terdaftar di Server DC.
 
 ![Browser Puskesmas Barat](screenshot/8-web-barat.jpeg)
 ![Browser CCTV Kota](screenshot/8-web-cctv.jpeg)
-![Browser Kantor Pelabuhan](screenshot/8-web-pelabuhant.jpeg)
+![Browser Kantor Pelabuhan](screenshot/8-web-pelabuhan.jpeg)
 
 `http://www.k6.smartcity.lab` dibuka dari PC Puskesmas Barat, CCTV Kota, dan Kantor Pelabuhan, menampilkan portal dengan nama kelompok. Ini membuktikan web dapat diakses dari wilayah lain dengan nama domain.
 
