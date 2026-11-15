@@ -327,7 +327,20 @@ ip route 0.0.0.0 0.0.0.0 203.0.113.25
 ![perangkat](screenshot/3-uji-perangkat.png)
 
 ### Soal 4 — DHCP
-
+![uji](screenshot/4-uji-1.jpeg)
+![uji](screenshot/4-uji-2.jpeg)
+![uji](screenshot/4-uji-3.jpeg)
+![uji](screenshot/4-uji-4.jpeg)
+![uji](screenshot/4-uji-5.jpeg)
+![uji](screenshot/4-uji-6.jpeg)
+![uji](screenshot/4-uji-7.jpeg)
+![uji](screenshot/4-uji-8.jpeg)
+![uji](screenshot/4-uji-9.jpeg)
+![uji](screenshot/4-uji-10.jpeg)
+![uji](screenshot/4-uji-11.jpeg)
+![uji](screenshot/4-uji-12.jpeg)
+![uji](screenshot/4-uji-13.jpeg)
+![uji](screenshot/4-uji-14.jpeg)
 
 ### Soal 5 — NAT
 
