@@ -407,7 +407,127 @@ NAT overload di R-PUSAT berhasil menerjemahkan seluruh host internal ke satu IP 
 ### Soal 6 — Tunnel GRE _(belum ada di file .pkt)_
 
 
-### Soal 7 — OSPF _(belum ada di file .pkt)_
+### Soal 7 — Dynamic Routing OSPF 
+
+Mengganti seluruh static route dengan dynamic routing OSPF, dengan ketentuan:
+- Menambahkan link cadangan **L7** antara R-DC dan R-UTARA.
+- Router tidak mengirim pesan OSPF ke LAN pengguna.
+- Default route ke internet hanya dikonfigurasi di R-PUSAT, router lain mendapatkannya lewat OSPF.
+- Jika salah satu link backbone putus, konektivitas pulih otomatis lewat jalur lain.
+
+### Pengalamatan Link L7
+
+| Link | Network | R-DC | R-UTARA |
+|---|---|---|---|
+| L7 (cadangan) | `10.48.241.56/30` | `10.48.241.57` (Gi5/0) | `10.48.241.58` (Gi6/0) |
+
+### Konfigurasi OSPF
+
+Ganti static route menjadi OSPF
+
+| Router | Router ID | Interface non-passive (link) | Network yang diiklankan |
+|---|---|---|---|
+| R-PUSAT | 1.1.1.1 | Vlan11 - Vlan15 | L1-L5, `10.48.224.0/21`, `10.48.241.0/27` |
+| R-UTARA | 2.2.2.2 | Gi2/0, Gi4/0, Gi6/0 | L2, L6, L7, `10.48.0.0/18`, `10.48.236.0/23` |
+| R-PELABUHAN | 3.3.3.3 | Gi0/0 | L6, `10.48.160.0/19`, `10.48.240.0/25` |
+| R-DC | 4.4.4.4 | Gi2/0, Gi5/0 | L1, L7, `10.48.239.0/24`, `10.48.96.0/19` |
+| R-BARAT | 5.5.5.5 | Gi2/0 | L5, `10.48.192.0/19`, `10.48.238.0/24` |
+| R-TIMUR | 6.6.6.6 | Gi2/0 | L4, `10.48.128.0/19`, `10.48.232.0/22` |
+| R-SELATAN | 7.7.7.7 | Gi2/0 | L3, `10.48.64.0/19`, `10.48.240.128/25` |
+
+Contoh konfigurasi (R-PUSAT):
+```
+ip route 0.0.0.0 0.0.0.0 203.0.113.25
+!
+router ospf 1
+ router-id 1.1.1.1
+ passive-interface default
+ no passive-interface Vlan11
+ no passive-interface Vlan12
+ no passive-interface Vlan13
+ no passive-interface Vlan14
+ no passive-interface Vlan15
+ network 10.48.241.32 0.0.0.3 area 0
+ network 10.48.241.36 0.0.0.3 area 0
+ network 10.48.241.40 0.0.0.3 area 0
+ network 10.48.241.44 0.0.0.3 area 0
+ network 10.48.241.48 0.0.0.3 area 0
+ network 10.48.224.0 0.0.7.255 area 0
+ network 10.48.241.0 0.0.0.31 area 0
+ default-information originate
+```
+
+Contoh konfigurasi router lain (R-BARAT):
+```
+router ospf 1
+ router-id 5.5.5.5
+ passive-interface default
+ no passive-interface GigabitEthernet2/0
+ network 10.48.241.48 0.0.0.3 area 0
+ network 10.48.192.0 0.0.31.255 area 0
+ network 10.48.238.0 0.0.0.255 area 0
+```
+
+**Penjelasan:**
+- `router-id` unik di tiap router sebagai identitas OSPF.
+- `passive-interface default` mematikan hello di semua interface, `no passive-interface` hanya menghidupkannya di link antar-router.
+- `network ... area 0` mengiklankan subnet, termasuk subnet LAN yang passive.
+- `default-information originate` hanya di R-PUSAT.
+
+### Pengujian
+
+**1. Link L7 dan alamatnya**
+
+![show ip interface brief R-DC](screenshot/7-interface-rdc.jpeg)
+![show ip interface brief R-UTARA](screenshot/7-interface-rutara.jpeg)
+
+L7 ber-IP `10.48.241.57` (R-DC) dan `10.48.241.58` (R-UTARA) dan berstatus up/up.
+
+**2. Static route sudah diganti OSPF**
+
+![show ip route ospf R-PUSAT](screenshot/7-routeospf-rpusat.jpeg)
+
+Seluruh subnet router lain berlabel `O`. Static route yang tersisa hanya default route ke ISP di R-PUSAT.
+
+**3. Neighbor OSPF**
+
+![show ip ospf neighbor R-PUSAT](screenshot/7-neighbor-rpusat.jpeg)
+![show ip ospf neighbor R-UTARA](screenshot/7-neighbor-rutara.jpeg)
+
+R-PUSAT memiliki 5 neighbor FULL, R-UTARA memiliki 3 neighbor FULL (termasuk R-DC lewat L7). Status `FULL/DR` dan `FULL/BDR` normal karena link bertipe broadcast.
+
+**4. Tidak ada pesan OSPF ke LAN pengguna**
+
+![show ip protocols R-BARAT](screenshot/7-protocols-barat.jpeg)
+
+Interface LAN (Gi3/0 dan Gi4/0) tercantum di **Passive Interface(s)**, sedangkan Gi2/0 (link ke R-PUSAT) tidak.
+
+**5. Default route otomatis dari OSPF**
+
+![show ip route R-BARAT](screenshot/7-iproute-baratjpeg)
+![tracert 8.8.8.8 dari Puskesmas Barat](screenshot/7-tracert-default.jpeg)
+
+R-BARAT memiliki `O*E2 0.0.0.0/0` via `10.48.241.49` tanpa static route. `tracert 8.8.8.8` berhasil lewat R-BARAT → R-PUSAT → R-ISP.
+
+**6. Failover otomatis (L2 putus)**
+
+Kondisi normal:
+
+![tracert normal](screenshot/7-failover-sebelum.jpeg)
+
+Jalur: R-PUSAT → R-UTARA → R-PELABUHAN (3 hop).
+
+Setelah L2 diputus (`shutdown` Gi2/0 di R-UTARA):
+
+![L2 diputus](screenshot/7-tes-terputus.jpeg)
+![tracert setelah putus](screenshot/failover-sesudah.jpeg)
+
+![bukti ping](screenshot/7-failover-ping.jpeg)
+
+R-UTARA hilang dari neighbor R-PUSAT, route ke `10.48.160.0` berpindah via `10.48.241.34` (R-DC), dan jalur menjadi R-PUSAT → R-DC → R-UTARA (lewat L7) → R-PELABUHAN (4 hop). Perpindahan terjadi otomatis tanpa perubahan konfigurasi.
+
+### Kesimpulan
+Seluruh static route berhasil diganti OSPF area 0. Default route hanya dikonfigurasi di R-PUSAT dan tersebar otomatis. Interface LAN pengguna tidak mengirim pesan OSPF, dan link L7 menjadi jalur cadangan yang aktif otomatis saat link backbone putus.
 
 
 ### Soal 8 — Layanan Smart City _(belum ada di file .pkt)_
