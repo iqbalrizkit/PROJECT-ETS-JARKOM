@@ -384,7 +384,7 @@ Menunjukkan interface outside/inside dan jumlah translasi.
 ![PC Pegawai](screenshot/5-ping-pc1.jpeg)
 ![PC Pegawai -t](screenshot/5-pingt-pc1.jpeg)
 ![PC Timur](screenshot/5-ping-pc2.jpeg)
-![Smartphone](screenshot/5-pingt-smartphone.jpeg)
+![Smartphone](screenshot/5-ping-smartphone.jpeg)
 
 Host dari wilayah berbeda berhasil mengakses `8.8.8.8`, dengan mengambil random sampling sebanyak 3 wilayah sebagai contoh.
 
