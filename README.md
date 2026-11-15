@@ -235,44 +235,46 @@ Dengan skema ini seluruh LAN dapat saling berkomunikasi: trafik naik lewat defau
 
 ### 3.3 DHCP (Soal 4)
 
-Antarmuka router dan server memakai IP statis; perangkat pengguna memakai DHCP. Alamat **host pertama sampai ke-10** (`.1`–`.10`) dikecualikan dari pool agar tidak bentrok dengan IP statis.
+Antarmuka router dan seluruh server memakai IP statis, sedangkan perangkat pengguna memperoleh IP secara dinamis melalui DHCP lengkap dengan gateway dan DNS. Pada setiap pool hanya alamat **gateway** (host pertama subnet) yang dikecualikan (`excluded-address`). Alamat statis lain tidak berada dalam rentang yang dibagikan karena ditempatkan pada subnet terpisah: Server Balai Kota (`10.48.241.0/27`), Server dan Storage DC (`10.48.239.0/24`), dan link antar-router (`/30`).
 
 | Router | Pool | Network | Gateway | Excluded |
 |---|---|---|---|---|
-| R-PUSAT | PEGAWAI | 10.48.224.0/21 | 10.48.224.1 | 10.48.224.1.10 |
-| R-UTARA | LAN-WIFI-UTARA | 10.48.0.0/18 | 10.48.0.1 | 10.48.0.1.10 |
-| R-UTARA | LAN-SENSOR-LALINTAS-UTARA | 10.48.236.0/23 | 10.48.236.1 | 10.48.236.1.10 |
-| R-BARAT | LAN-WIFI-BARAT | 10.48.192.0/19 | 10.48.192.1 | 10.48.192.1.10 |
-| R-BARAT | LAN-PUSKESMAS-SEKOLAH-BARAT | 10.48.238.0/24 | 10.48.238.1 | 10.48.238.1.10 |
-| R-TIMUR | LAN-WIFI-TIMUR | 10.48.128.0/19 | 10.48.128.1 | 10.48.128.1.10 |
-| R-TIMUR | LAN-SENSOR-BANJIR-TIMUR | 10.48.232.0/22 | 10.48.232.1 | 10.48.232.1.10 |
-| R-SELATAN | LAN-WIFI-SELATAN | 10.48.64.0/19 | 10.48.64.1 | 10.48.64.1.10 |
-| R-SELATAN | LAN-PJU-SELATAN | 10.48.240.128/25 | 10.48.240.129 | 10.48.240.129.138 |
-| R-PELABUHAN | SCADA-PELABUHAN | 10.48.160.0/19 | 10.48.160.1 | 10.48.160.1.10 |
-| R-PELABUHAN | KANTOR-PELABUHAN | 10.48.240.0/25 | 10.48.240.1 | 10.48.240.1.10 |
+| R-PUSAT | PEGAWAI-BALAIKOTA | 10.48.224.0/21 | 10.48.224.1 | 10.48.224.1 |
+| R-UTARA | WIFI-UTARA | 10.48.0.0/18 | 10.48.0.1 | 10.48.0.1 |
+| R-UTARA | SENSOR-LALULINTAS-UTARA | 10.48.236.0/23 | 10.48.236.1 | 10.48.236.1 |
+| R-BARAT | WIFI-BARAT | 10.48.192.0/19 | 10.48.192.1 | 10.48.192.1 |
+| R-BARAT | PUSKESMAS-SEKOLAH-BARAT | 10.48.238.0/24 | 10.48.238.1 | 10.48.238.1 |
+| R-TIMUR | WIFI-TIMUR | 10.48.128.0/19 | 10.48.128.1 | 10.48.128.1 |
+| R-TIMUR | SENSOR-BANJIR-TIMUR | 10.48.232.0/22 | 10.48.232.1 | 10.48.232.1 |
+| R-SELATAN | WIFI-SELATAN | 10.48.64.0/19 | 10.48.64.1 | 10.48.64.1 |
+| R-SELATAN | PJU-SELATAN | 10.48.240.128/25 | 10.48.240.129 | 10.48.240.129 |
+| R-PELABUHAN | SCADA-PELABUHAN | 10.48.160.0/19 | 10.48.160.1 | 10.48.160.1 |
+| R-PELABUHAN | KANTOR-PELABUHAN | 10.48.240.0/25 | 10.48.240.1 | 10.48.240.1 |
+| Server DC | CCTV-KOTA | 10.48.96.0/19 | 10.48.96.1 | (tidak ada; pool mulai 10.48.96.2) |
 
-Semua pool memberi **DNS `8.8.8.8`** sementara. Setelah DNS internal (soal 8) aktif, DNS server pada pool diganti menjadi `10.48.239.10`.
+Semua pool memberikan **DNS `8.8.8.8`** untuk sementara. Setelah DNS internal (soal 8) aktif, DNS pada pool diganti menjadi `10.48.239.10`.
 
-Contoh (R-UTARA):
+Contoh konfigurasi (R-UTARA):
 
 ```
-ip dhcp excluded-address 10.48.0.1 10.48.0.10
-ip dhcp pool LAN-WIFI-UTARA
+ip dhcp excluded-address 10.48.0.1
+ip dhcp pool WIFI-UTARA
  network 10.48.0.0 255.255.192.0
  default-router 10.48.0.1
  dns-server 8.8.8.8
 ```
 
-**Kasus khusus — subnet CCTV Kota (R-DC):** alamat diberikan oleh **server DHCP di LAN Server dan Storage DC**, bukan router.
+**Kasus khusus: subnet CCTV Kota (R-DC).** Alamat CCTV diberikan oleh **server DHCP di LAN Server dan Storage DC**, bukan oleh router. R-DC tidak memiliki pool DHCP. Pada antarmuka CCTV dipasang **DHCP relay**:
 
-- R-DC tidak punya pool; pada antarmuka CCTV (Gi3/0) dipasang **DHCP relay**:
-  ```
-  interface GigabitEthernet3/0
-   ip address 10.48.96.1 255.255.224.0
-   ip helper-address 10.48.239.10
-  ```
-  `ip helper-address` meneruskan broadcast DHCP Discover dari LAN CCTV (unicast) ke server `10.48.239.10` lewat static route, karena broadcast tidak melewati router.
-- Di server `10.48.239.10` (Services → DHCP) dibuat pool **CCTV-KOTA**: network `10.48.96.0/19`, default gateway `10.48.96.1`, DNS `8.8.8.8`, awal `10.48.96.11` (menghindari `.1`–`.10`), maksimum 6.000 pengguna.
+```
+interface GigabitEthernet3/0
+ ip address 10.48.96.1 255.255.224.0
+ ip helper-address 10.48.239.10
+```
+
+Klien CCTV mengirim DHCP Discover secara broadcast, dan broadcast tidak diteruskan oleh router. Dengan `ip helper-address`, R-DC mengubahnya menjadi **unicast** menuju `10.48.239.10` dan mengisi field `giaddr` dengan `10.48.96.1`. Server menggunakan `giaddr` untuk memilih pool yang sesuai (CCTV-KOTA), lalu balasannya dikirim kembali melalui R-DC ke klien. Server berada pada subnet yang terhubung langsung dengan R-DC, sehingga tidak diperlukan static route tambahan.
+
+Pada server `10.48.239.10` (Services → DHCP) dibuat pool **CCTV-KOTA**: network `10.48.96.0/19`, default gateway `10.48.96.1`, DNS `8.8.8.8`, alamat awal `10.48.96.2`, maksimum 6.000 pengguna.
 
 ### 3.4 NAT (Soal 5)
 
@@ -304,11 +306,182 @@ ip route 0.0.0.0 0.0.0.0 203.0.113.25
 - Switch 2960 memakai konfigurasi default (tanpa VLAN) karena satu switch = satu LAN.
 - Access Point memakai konfigurasi default dan perangkat mobile dihubungkan secara wireless.
 
-### 3.6 Tunnel GRE (Soal 6) — _rencana, belum ada di file .pkt_
+### 3.6 Tunnel GRE (Soal 6): belum berhasil
 
-### 3.7 Dynamic routing OSPF (Soal 7) — _rencana, kerjakan di file terpisah (copy file utama)_
+**Status.** Tunnel GRE antara R-PUSAT dan R-PELABUHAN berhasil dibentuk (Tunnel0 `up, line protocol is up` di kedua router), tetapi lalu lintas **belum berhasil melewati tunnel**. Syarat soal bahwa trafik subnet Balai Kota menuju subnet Pelabuhan harus melewati tunnel **belum terpenuhi**. Penyebab pasti kegagalan belum berhasil dibuktikan.
 
-### 3.8 Layanan aplikasi Smart City (Soal 8) — _rencana_
+**Rancangan.** Alamat tambahan di luar Tabel 3 diambil dari blok yang masih kosong pada `10.48.241.0/24`:
+
+| Keterangan | Network | Prefix | Alamat |
+|---|---|---|---|
+| Tunnel GRE | 10.48.241.56 | /30 | R-PUSAT `.57`, R-PELABUHAN `.58` |
+| Loopback endpoint tunnel | 10.48.241.60 | /30 | R-PUSAT `.61`, R-PELABUHAN `.62` |
+
+Rancangan routing: rute statis dari R-PUSAT ke subnet Pelabuhan (`10.48.160.0/19`, `10.48.240.0/25`) melalui `10.48.241.58`, dan rute balik dari R-PELABUHAN ke subnet Balai Kota (`10.48.224.0/21`, `10.48.241.0/27`) melalui `10.48.241.57`.
+
+**Kronologi pengujian.**
+
+| No | Percobaan | Hasil |
+|---|---|---|
+| 1 | `tunnel source 10.48.241.37` (IP link L2 di R-PUSAT) | Ditolak (`Invalid input`). Tunnel source terbaca `UNKNOWN`, line protocol down. |
+| 2 | `tunnel source Vlan13` (antarmuka yang memegang IP tersebut) | Ditolak. Hasil sama. |
+| 3 | `tunnel source ?` | Hanya Ethernet, FastEthernet, GigabitEthernet, Loopback, dan Serial yang diterima. R-PUSAT memakai antarmuka VLAN (SVI) untuk link antar-router, sehingga tidak ada antarmuka yang dapat dipakai langsung. |
+| 4 | Loopback0 sebagai source dan destination, ditambah rute `/32` ke loopback lawan di R-PUSAT, R-UTARA, dan R-PELABUHAN | Tunnel0 `up/up` di kedua router. |
+| 5 | Ping extended antar-loopback (dari `10.48.241.62` ke `.61`, dan sebaliknya) | Berhasil 5/5. Jalur fisik antar-endpoint berfungsi. |
+| 6 | Ping `10.48.241.58` dari R-PUSAT | Gagal (0/5), berulang. Counter `packets input/output` tetap 0. |
+| 7 | Pemeriksaan ACL | Hanya ACL 1 (untuk NAT) dan tidak dipasang sebagai `access-group`. Tidak ada yang memblokir GRE. |
+| 8 | Tunnel0 dibuat ulang di R-PUSAT dan R-PELABUHAN | `[ISI hasil ping .57 <-> .58 setelah kedua sisi dibuat ulang]` |
+| 9 | Simulation Mode | Tidak ada paket tampil. Tidak konklusif karena diduga terkait mode dan filter event. |
+
+**Analisis.** Karena ping antar-loopback berhasil dua arah, jalur underlay (rute dan kabel) dapat dikesampingkan. Karena Tunnel0 `up/up` dan ACL tidak ada, konfigurasi dasar tunnel juga tampak benar. Yang gagal hanya pengiriman paket melalui antarmuka tunnel itu sendiri. Beberapa dugaan, **tidak ada yang terbukti**:
+
+1. Keterbatasan atau bug Packet Tracer dalam menangani GRE pada router yang memakai antarmuka VLAN (SVI).
+2. Sisa kondisi tunnel yang rusak akibat konfigurasi awal bersumber `UNKNOWN`.
+3. Perbedaan perilaku simulator pada ping yang berasal dari router sendiri.
+
+**Dampak.** Selama tunnel tidak berfungsi, trafik Balai Kota ke Pelabuhan berjalan lewat jalur fisik melalui R-UTARA (rute statis via `10.48.241.38`).
+
+**Penjelasan teori (diminta soal).**
+
+*Mengapa router memilih tunnel dibanding jalur lain ke Pelabuhan.* Router memilih rute dengan *longest prefix match*. Bila prefix sama, dipilih *administrative distance* terkecil. Rute statis (AD 1) lebih diutamakan daripada OSPF (110) atau RIP (120). Dengan rute statis ke subnet Pelabuhan yang menuju ujung tunnel (`10.48.241.58`), paket dibungkus GRE dan dikirim ke endpoint lawan, sedangkan R-UTARA hanya meneruskan paket GRE tanpa melihat isinya. Penjelasan ini berlaku bila tunnel berfungsi.
+
+*Mengapa GRE tidak mengenkripsi.* GRE hanya melakukan *encapsulation*: paket asli dibungkus header GRE (protokol 47) dan header IP luar. Isi tidak diacak, dan tidak ada kunci, autentikasi, atau pengecekan integritas. Siapa pun yang menangkap paket di jalur, misalnya di R-UTARA, dapat membaca isinya. Enkripsi memerlukan IPsec (ESP).
+
+**Bonus IPsec.** Tidak dikerjakan karena tunnel GRE sebagai dasarnya belum berfungsi. Rancangan yang akan dipakai adalah ISAKMP (AES-256, SHA, pre-shared key, group 2) dan transform-set `esp-aes 256 esp-sha-hmac`. ACL hanya mencocokkan protokol GRE antar-loopback (`10.48.241.61` ↔ `10.48.241.62`), dan crypto map dipasang di antarmuka menuju R-UTARA. Rancangan ini belum diuji.
+
+### 3.7 Dynamic routing OSPF (Soal 7)
+
+![topologi ospf](screenshot/7-topologi-ospf.png)
+![topologi ospf](screenshot/7-topologi-ospf1.png)
+
+
+Mengganti seluruh static route dengan dynamic routing OSPF, dengan ketentuan:
+- Menambahkan link cadangan **L7** antara R-DC dan R-UTARA.
+- Router tidak mengirim pesan OSPF ke LAN pengguna.
+- Default route ke internet hanya dikonfigurasi di R-PUSAT, router lain mendapatkannya lewat OSPF.
+- Jika salah satu link backbone putus, konektivitas pulih otomatis lewat jalur lain.
+
+### Pengalamatan Link L7
+
+| Link | Network | R-DC | R-UTARA |
+|---|---|---|---|
+| L7 (cadangan) | `10.48.241.56/30` | `10.48.241.57` (Gi5/0) | `10.48.241.58` (Gi6/0) |
+
+### Konfigurasi OSPF
+
+Ganti static route menjadi OSPF
+
+| Router | Router ID | Interface non-passive (link) | Network yang diiklankan |
+|---|---|---|---|
+| R-PUSAT | 1.1.1.1 | Vlan11 - Vlan15 | L1-L5, `10.48.224.0/21`, `10.48.241.0/27` |
+| R-UTARA | 2.2.2.2 | Gi2/0, Gi4/0, Gi6/0 | L2, L6, L7, `10.48.0.0/18`, `10.48.236.0/23` |
+| R-PELABUHAN | 3.3.3.3 | Gi0/0 | L6, `10.48.160.0/19`, `10.48.240.0/25` |
+| R-DC | 4.4.4.4 | Gi2/0, Gi5/0 | L1, L7, `10.48.239.0/24`, `10.48.96.0/19` |
+| R-BARAT | 5.5.5.5 | Gi2/0 | L5, `10.48.192.0/19`, `10.48.238.0/24` |
+| R-TIMUR | 6.6.6.6 | Gi2/0 | L4, `10.48.128.0/19`, `10.48.232.0/22` |
+| R-SELATAN | 7.7.7.7 | Gi2/0 | L3, `10.48.64.0/19`, `10.48.240.128/25` |
+
+Contoh konfigurasi (R-PUSAT):
+```
+ip route 0.0.0.0 0.0.0.0 203.0.113.25
+!
+router ospf 1
+ router-id 1.1.1.1
+ passive-interface default
+ no passive-interface Vlan11
+ no passive-interface Vlan12
+ no passive-interface Vlan13
+ no passive-interface Vlan14
+ no passive-interface Vlan15
+ network 10.48.241.32 0.0.0.3 area 0
+ network 10.48.241.36 0.0.0.3 area 0
+ network 10.48.241.40 0.0.0.3 area 0
+ network 10.48.241.44 0.0.0.3 area 0
+ network 10.48.241.48 0.0.0.3 area 0
+ network 10.48.224.0 0.0.7.255 area 0
+ network 10.48.241.0 0.0.0.31 area 0
+ default-information originate
+```
+
+Contoh konfigurasi router lain (R-BARAT):
+```
+router ospf 1
+ router-id 5.5.5.5
+ passive-interface default
+ no passive-interface GigabitEthernet2/0
+ network 10.48.241.48 0.0.0.3 area 0
+ network 10.48.192.0 0.0.31.255 area 0
+ network 10.48.238.0 0.0.0.255 area 0
+```
+
+**Penjelasan:**
+- `router-id` unik di tiap router sebagai identitas OSPF.
+- `passive-interface default` mematikan hello di semua interface, `no passive-interface` hanya menghidupkannya di link antar-router.
+- `network ... area 0` mengiklankan subnet, termasuk subnet LAN yang passive.
+- `default-information originate` hanya di R-PUSAT.
+
+### 3.8 Layanan aplikasi Smart City (Soal 8)
+
+Menyediakan layanan aplikasi smart city dengan domain internal `k6.smartcity.lab`:
+- **DNS** di LAN Server dan Storage DC, dengan nama `www`, `ftp`, dan `mail` yang dapat diakses dari seluruh wilayah.
+- **Web** di LAN Server Balai Kota berupa portal Smart City Surabaya berisi nama kelompok, dapat dibuka dari seluruh wilayah dengan nama domain.
+- **FTP** di LAN Server dan Storage DC untuk menyimpan rekaman CCTV dengan akun login, dan perangkat di LAN CCTV Kota dapat mengunggah ke sana.
+- **Email** antar pegawai Balai Kota dan Kantor Pelabuhan.
+
+### Pengalamatan Server
+
+| Server | LAN | IP | Mask | Gateway | DNS | Layanan |
+|---|---|---|---|---|---|---|
+| Server dan Storage DC | `10.48.239.0/24` | `10.48.239.10` | `255.255.255.0` | `10.48.239.1` | `10.48.239.10` | DNS, FTP, Email |
+| Server Balai Kota | `10.48.241.0/27` | `10.48.241.2` | `255.255.255.224` | `10.48.241.1` | `10.48.239.10` | HTTP |
+
+### Konfigurasi
+
+**1. DNS (Server DC, Services → DNS)**
+
+| Name | Type | Address |
+|---|---|---|
+| `www.k6.smartcity.lab` | A | `10.48.241.2` |
+| `ftp.k6.smartcity.lab` | A | `10.48.239.10` |
+| `mail.k6.smartcity.lab` | A | `10.48.239.10` |
+
+DNS Server `10.48.239.10` dibagikan ke klien lewat pool DHCP, contoh di router:
+```
+ip dhcp pool PEGAWAI-BALAIKOTA
+ dns-server 10.48.239.10
+```
+Pool yang sama diubah untuk LAN Puskesmas Barat, Kantor Pelabuhan, dan LAN CCTV (pool di Server DC).
+
+**2. Web (Server Balai Kota, Services → HTTP)**
+
+HTTP diaktifkan dan `index.html` diganti:
+```html
+<html>
+<head><title>Smart City Surabaya</title></head>
+<body style="text-align:center;font-family:Arial">
+  <h1>Portal Smart City Surabaya</h1>
+  <h3>Kelompok: [NAMA KELOMPOK]</h3>
+  <p>Anggota: [NAMA 1], [NAMA 2], [NAMA 3]</p>
+</body>
+</html>
+```
+
+**3. FTP (Server DC, Services → FTP)**
+
+| Username | Password | Permission |
+|---|---|---|
+| `cctv` | `cctv123` | Write, Read, Delete, Rename, List |
+
+**4. Email (Server DC, Services → EMAIL)**
+
+SMTP dan POP3 diaktifkan, Domain Name `k6.smartcity.lab`.
+
+| User | Password | Alamat email | Dipakai di |
+|---|---|---|---|
+| `pegawai` | `pegawai123` | `pegawai@k6.smartcity.lab` | PC Pegawai Balai Kota |
+| `pelabuhan` | `pelabuhan123` | `pelabuhan@k6.smartcity.lab` | PC Kantor Pelabuhan |
+
+Incoming dan Outgoing Mail Server di kedua PC: `mail.k6.smartcity.lab`.
 
 ---
 
@@ -404,81 +577,16 @@ R-ISP hanya memiliki route connected `8.8.8.0/24` dan `203.0.113.24/30`. **Tidak
 NAT overload di R-PUSAT berhasil menerjemahkan seluruh host internal ke satu IP publik `203.0.113.26`. Akses ke `8.8.8.8` berhasil tanpa R-ISP memiliki rute ke jaringan privat.
 
 
-### Soal 6 — Tunnel GRE _(belum ada di file .pkt)_
+### Soal 6 — Tunnel GRE
 
+| No | Pengujian | Perintah | Hasil | Status | Bukti |
+|---|---|---|---|---|---|
+| 1 | Tunnel source berupa antarmuka VLAN | `tunnel source Vlan13` | Ditolak. Simulator hanya menerima Ethernet, FastEthernet, GigabitEthernet, Loopback, dan Serial. | Gagal | ![](screenshot/6-invalid-vlan13.png) |
+| 2 | Tunnel memakai Loopback0 | `show interface tunnel0` | `up, line protocol is up` di R-PUSAT dan R-PELABUHAN | Berhasil | ![](screenshot/6-iface-tunnel0.png) |
+| 3 | Konektivitas antar-endpoint | `ping 10.48.241.62` | `5/5 berhasil` | Berhasil | ![](screenshot/6-ping-241-62.png) |
+| 4 | Konektivitas melalui tunnel | `ping 10.48.241.58` | `0/5 gagal` | Gagal | ![](screenshot/6-ping-241-58.png) |
 
 ### Soal 7 — Dynamic Routing OSPF 
-
-![topologi ospf](screenshot/7-topologi-ospf.png)
-![topologi ospf](screenshot/7-topologi-ospf1.png)
-
-
-Mengganti seluruh static route dengan dynamic routing OSPF, dengan ketentuan:
-- Menambahkan link cadangan **L7** antara R-DC dan R-UTARA.
-- Router tidak mengirim pesan OSPF ke LAN pengguna.
-- Default route ke internet hanya dikonfigurasi di R-PUSAT, router lain mendapatkannya lewat OSPF.
-- Jika salah satu link backbone putus, konektivitas pulih otomatis lewat jalur lain.
-
-### Pengalamatan Link L7
-
-| Link | Network | R-DC | R-UTARA |
-|---|---|---|---|
-| L7 (cadangan) | `10.48.241.56/30` | `10.48.241.57` (Gi5/0) | `10.48.241.58` (Gi6/0) |
-
-### Konfigurasi OSPF
-
-Ganti static route menjadi OSPF
-
-| Router | Router ID | Interface non-passive (link) | Network yang diiklankan |
-|---|---|---|---|
-| R-PUSAT | 1.1.1.1 | Vlan11 - Vlan15 | L1-L5, `10.48.224.0/21`, `10.48.241.0/27` |
-| R-UTARA | 2.2.2.2 | Gi2/0, Gi4/0, Gi6/0 | L2, L6, L7, `10.48.0.0/18`, `10.48.236.0/23` |
-| R-PELABUHAN | 3.3.3.3 | Gi0/0 | L6, `10.48.160.0/19`, `10.48.240.0/25` |
-| R-DC | 4.4.4.4 | Gi2/0, Gi5/0 | L1, L7, `10.48.239.0/24`, `10.48.96.0/19` |
-| R-BARAT | 5.5.5.5 | Gi2/0 | L5, `10.48.192.0/19`, `10.48.238.0/24` |
-| R-TIMUR | 6.6.6.6 | Gi2/0 | L4, `10.48.128.0/19`, `10.48.232.0/22` |
-| R-SELATAN | 7.7.7.7 | Gi2/0 | L3, `10.48.64.0/19`, `10.48.240.128/25` |
-
-Contoh konfigurasi (R-PUSAT):
-```
-ip route 0.0.0.0 0.0.0.0 203.0.113.25
-!
-router ospf 1
- router-id 1.1.1.1
- passive-interface default
- no passive-interface Vlan11
- no passive-interface Vlan12
- no passive-interface Vlan13
- no passive-interface Vlan14
- no passive-interface Vlan15
- network 10.48.241.32 0.0.0.3 area 0
- network 10.48.241.36 0.0.0.3 area 0
- network 10.48.241.40 0.0.0.3 area 0
- network 10.48.241.44 0.0.0.3 area 0
- network 10.48.241.48 0.0.0.3 area 0
- network 10.48.224.0 0.0.7.255 area 0
- network 10.48.241.0 0.0.0.31 area 0
- default-information originate
-```
-
-Contoh konfigurasi router lain (R-BARAT):
-```
-router ospf 1
- router-id 5.5.5.5
- passive-interface default
- no passive-interface GigabitEthernet2/0
- network 10.48.241.48 0.0.0.3 area 0
- network 10.48.192.0 0.0.31.255 area 0
- network 10.48.238.0 0.0.0.255 area 0
-```
-
-**Penjelasan:**
-- `router-id` unik di tiap router sebagai identitas OSPF.
-- `passive-interface default` mematikan hello di semua interface, `no passive-interface` hanya menghidupkannya di link antar-router.
-- `network ... area 0` mengiklankan subnet, termasuk subnet LAN yang passive.
-- `default-information originate` hanya di R-PUSAT.
-
-### Pengujian
 
 **1. Link L7 dan alamatnya**
 
@@ -535,69 +643,6 @@ Seluruh static route berhasil diganti OSPF area 0. Default route hanya dikonfigu
 
 
 ### Soal 8 — Layanan Smart City
-
-Menyediakan layanan aplikasi smart city dengan domain internal `k6.smartcity.lab`:
-- **DNS** di LAN Server dan Storage DC, dengan nama `www`, `ftp`, dan `mail` yang dapat diakses dari seluruh wilayah.
-- **Web** di LAN Server Balai Kota berupa portal Smart City Surabaya berisi nama kelompok, dapat dibuka dari seluruh wilayah dengan nama domain.
-- **FTP** di LAN Server dan Storage DC untuk menyimpan rekaman CCTV dengan akun login, dan perangkat di LAN CCTV Kota dapat mengunggah ke sana.
-- **Email** antar pegawai Balai Kota dan Kantor Pelabuhan.
-
-### Pengalamatan Server
-
-| Server | LAN | IP | Mask | Gateway | DNS | Layanan |
-|---|---|---|---|---|---|---|
-| Server dan Storage DC | `10.48.239.0/24` | `10.48.239.10` | `255.255.255.0` | `10.48.239.1` | `10.48.239.10` | DNS, FTP, Email |
-| Server Balai Kota | `10.48.241.0/27` | `10.48.241.2` | `255.255.255.224` | `10.48.241.1` | `10.48.239.10` | HTTP |
-
-### Konfigurasi
-
-**1. DNS (Server DC, Services → DNS)**
-
-| Name | Type | Address |
-|---|---|---|
-| `www.k6.smartcity.lab` | A | `10.48.241.2` |
-| `ftp.k6.smartcity.lab` | A | `10.48.239.10` |
-| `mail.k6.smartcity.lab` | A | `10.48.239.10` |
-
-DNS Server `10.48.239.10` dibagikan ke klien lewat pool DHCP, contoh di router:
-```
-ip dhcp pool PEGAWAI-BALAIKOTA
- dns-server 10.48.239.10
-```
-Pool yang sama diubah untuk LAN Puskesmas Barat, Kantor Pelabuhan, dan LAN CCTV (pool di Server DC).
-
-**2. Web (Server Balai Kota, Services → HTTP)**
-
-HTTP diaktifkan dan `index.html` diganti:
-```html
-<html>
-<head><title>Smart City Surabaya</title></head>
-<body style="text-align:center;font-family:Arial">
-  <h1>Portal Smart City Surabaya</h1>
-  <h3>Kelompok: [NAMA KELOMPOK]</h3>
-  <p>Anggota: [NAMA 1], [NAMA 2], [NAMA 3]</p>
-</body>
-</html>
-```
-
-**3. FTP (Server DC, Services → FTP)**
-
-| Username | Password | Permission |
-|---|---|---|
-| `cctv` | `cctv123` | Write, Read, Delete, Rename, List |
-
-**4. Email (Server DC, Services → EMAIL)**
-
-SMTP dan POP3 diaktifkan, Domain Name `k6.smartcity.lab`.
-
-| User | Password | Alamat email | Dipakai di |
-|---|---|---|---|
-| `pegawai` | `pegawai123` | `pegawai@k6.smartcity.lab` | PC Pegawai Balai Kota |
-| `pelabuhan` | `pelabuhan123` | `pelabuhan@k6.smartcity.lab` | PC Kantor Pelabuhan |
-
-Incoming dan Outgoing Mail Server di kedua PC: `mail.k6.smartcity.lab`.
-
-### Pengujian
 
 **1. Record DNS**
 
