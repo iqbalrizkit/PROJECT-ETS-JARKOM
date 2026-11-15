@@ -369,32 +369,34 @@ ip nat inside source list 1 interface GigabitEthernet0/0 overload
 
 **1. Konfigurasi NAT di R-PUSAT**
 
-![Konfigurasi NAT R-PUSAT](img/nat-config.png)
+![Konfigurasi NAT R-PUSAT](screenshot/5-konfigurasi-nat.jpeg)
 
 Satu interface outside (Gi0/0), beberapa interface inside, dan perintah `overload` terlihat.
 
 **2. Statistik NAT**
 
-![show ip nat statistics](img/nat-statistics.png)
+![show ip nat statistics](screenshot/5-nat-statistics.jpeg)
 
 Menunjukkan interface outside/inside dan jumlah translasi.
 
 **3. Akses ke 8.8.8.8 dari beberapa wilayah**
 
-![tracert dari PC Pegawai](img/tracert-pegawai.png)
-![tracert dari PC Puskesmas Barat](img/tracert-barat.png)
+![PC Pegawai](screenshot/5-ping-pc1.jpeg)
+![PC Pegawai -t](screenshot/5-pingt-pc1.jpeg)
+![PC Timur](screenshot/5-ping-pc2.jpeg)
+![Smartphone](screenshot/5-pingt-smartphone.jpeg)
 
-Host dari wilayah berbeda berhasil mengakses `8.8.8.8`, sehingga syarat "seluruh host" terpenuhi.
+Host dari wilayah berbeda berhasil mengakses `8.8.8.8`, dengan mengambil random sampling sebanyak 3 wilayah sebagai contoh.
 
 **4. Tabel translasi NAT**
 
-![show ip nat translations](img/nat-translations.png)
+![show ip nat translations](screenshot/5-nat-translations.jpeg)
 
 Beberapa alamat `10.48.x.x` (inside local) dipetakan ke satu `203.0.113.26` (inside global) dengan port berbeda.
 
 **5. Tabel routing R-ISP**
 
-![show ip route R-ISP](img/isp-route.png)
+![show ip route R-ISP](screenshot/5-iproute-risp.jpeg)
 
 R-ISP hanya memiliki route connected `8.8.8.0/24` dan `203.0.113.24/30`. **Tidak ada** rute ke `10.0.0.0/8` atau `10.48.0.0/16`, sehingga syarat bahwa R-ISP tidak mengetahui alamat privat terpenuhi.
 
