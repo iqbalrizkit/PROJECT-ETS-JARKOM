@@ -409,6 +409,10 @@ NAT overload di R-PUSAT berhasil menerjemahkan seluruh host internal ke satu IP 
 
 ### Soal 7 — Dynamic Routing OSPF 
 
+![topologi ospf](screenshot/7-topologi-ospf.png)
+![topologi ospf](screenshot/7-topologi-ospf1.png)
+
+
 Mengganti seluruh static route dengan dynamic routing OSPF, dengan ketentuan:
 - Menambahkan link cadangan **L7** antara R-DC dan R-UTARA.
 - Router tidak mengirim pesan OSPF ke LAN pengguna.
