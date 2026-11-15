@@ -342,7 +342,64 @@ ip route 0.0.0.0 0.0.0.0 203.0.113.25
 ![uji](screenshot/4-uji-13.jpeg)
 ![uji](screenshot/4-uji-14.jpeg)
 
-### Soal 5 — NAT
+### Soal 5 — NAT (Network Address Translation)
+
+Seluruh host internal (`10.48.0.0/16`) dapat mengakses server `8.8.8.8` menggunakan **satu IP publik milik R-PUSAT** (`203.0.113.26`). R-ISP **tidak boleh** memiliki rute ke alamat privat internal.
+
+### Konfigurasi (R-PUSAT)
+```
+access-list 1 permit 10.48.0.0 0.0.255.255
+!
+interface GigabitEthernet0/0
+ ip nat outside
+!
+interface GigabitEthernet0/1
+ ip nat inside
+! (juga Gi0/2 dan Vlan11 - Vlan15)
+!
+ip nat inside source list 1 interface GigabitEthernet0/0 overload
+```
+
+**Penjelasan:**
+- `access-list 1 permit 10.48.0.0 0.0.255.255` menentukan alamat yang boleh di-NAT (seluruh `10.48.0.0/16`).
+- `ip nat inside` / `ip nat outside` menandai arah translasi pada tiap interface.
+- `overload` membuat banyak host memakai satu IP publik (PAT).
+
+### Pengujian
+
+**1. Konfigurasi NAT di R-PUSAT**
+
+![Konfigurasi NAT R-PUSAT](img/nat-config.png)
+
+Satu interface outside (Gi0/0), beberapa interface inside, dan perintah `overload` terlihat.
+
+**2. Statistik NAT**
+
+![show ip nat statistics](img/nat-statistics.png)
+
+Menunjukkan interface outside/inside dan jumlah translasi.
+
+**3. Akses ke 8.8.8.8 dari beberapa wilayah**
+
+![tracert dari PC Pegawai](img/tracert-pegawai.png)
+![tracert dari PC Puskesmas Barat](img/tracert-barat.png)
+
+Host dari wilayah berbeda berhasil mengakses `8.8.8.8`, sehingga syarat "seluruh host" terpenuhi.
+
+**4. Tabel translasi NAT**
+
+![show ip nat translations](img/nat-translations.png)
+
+Beberapa alamat `10.48.x.x` (inside local) dipetakan ke satu `203.0.113.26` (inside global) dengan port berbeda.
+
+**5. Tabel routing R-ISP**
+
+![show ip route R-ISP](img/isp-route.png)
+
+R-ISP hanya memiliki route connected `8.8.8.0/24` dan `203.0.113.24/30`. **Tidak ada** rute ke `10.0.0.0/8` atau `10.48.0.0/16`, sehingga syarat bahwa R-ISP tidak mengetahui alamat privat terpenuhi.
+
+### Kesimpulan
+NAT overload di R-PUSAT berhasil menerjemahkan seluruh host internal ke satu IP publik `203.0.113.26`. Akses ke `8.8.8.8` berhasil tanpa R-ISP memiliki rute ke jaringan privat.
 
 
 ### Soal 6 — Tunnel GRE _(belum ada di file .pkt)_
