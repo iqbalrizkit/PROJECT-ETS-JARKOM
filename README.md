@@ -318,6 +318,7 @@ ip route 0.0.0.0 0.0.0.0 203.0.113.25
 ### Soal 1 — Perancangan topologi
 
 
+
 ### Soal 2 — Tabel subnetting
 
 
