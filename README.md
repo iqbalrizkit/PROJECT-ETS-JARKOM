@@ -15,8 +15,8 @@
 
 ## 1. Gambar topologi & alasan pemilihan skema (VLSM)
 
-![Topologi Mid-Project di Cisco Packet Tracer](img/topologi.png)
-
+![Topologi Mid-Project di Cisco Packet Tracer](screenshot/0-topologi-atas.jpeg)
+![Topologi Mid-Project di Cisco Packet Tracer](screenshot/0-topologi-bawah.jpeg)
 
 ### 1.1 Alasan memilih VLSM
 
